@@ -111,7 +111,7 @@ public class Dep10MulDiv2 {
             var low_bits = Word.of(product);
             var high_bits = Word.of(product >> 16);
 
-            s.setA(low_bits);
+            s.setX(low_bits);
             s.setH(high_bits);
 
             s.setN(high_bits.isNegative());
@@ -177,7 +177,7 @@ public class Dep10MulDiv2 {
             var op = operand.signedValue();
             
             if (op == 0) {
-                s.setA(Word.of(0));
+                s.setX(Word.of(0));
                 s.setH(Word.of(0));
                 s.setN(false);
                 s.setZ(true);
@@ -249,11 +249,11 @@ public class Dep10MulDiv2 {
         public void exec(State s, Mode mode) {
             var operand = mode.resolveWord(s);
             
-            var dividend = ((long) s.getH().value() << 16) + s.getA().value();
+            var dividend = ((long) s.getH().value() << 16) + s.getX().value();
             var op = operand.value();
             
             if (op == 0) {
-                s.setA(Word.of(0));
+                s.setX(Word.of(0));
                 s.setH(Word.of(0));
                 s.setN(false);
                 s.setZ(true);
@@ -264,7 +264,7 @@ public class Dep10MulDiv2 {
                 var remainder = dividend % op;
                 
                 var q = Word.of((int) quotient);
-                s.setA(q);
+                s.setX(q);
                 s.setH(Word.of((int) remainder));
                 s.setN(q.isNegative());
                 s.setZ(q.isZero());
