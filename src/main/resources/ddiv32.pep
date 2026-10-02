@@ -2,6 +2,11 @@
 ; DDiv / UDDiv -- 32-bit / 32-bit division, matching the stack calling
 ; convention Prof. Howard gave Jess for DMul (see "DMUL - checking if
 ; on the right track" thread, 9/14/2026).
+;
+; Register usage: only register A is used throughout, including in all
+; of the internal helper routines below (_UCmp16, _UDiv32, etc). X is
+; left completely untouched, so callers don't need to worry about
+; these calls trashing whatever they were keeping in X.
 ;=======================================================================
 
 _UCmp16:

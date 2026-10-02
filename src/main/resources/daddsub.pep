@@ -3,6 +3,12 @@
 ; matching Java/C++ int semantics: silently wrap/truncate on overflow,
 ; no trap.
 ;
+; Register usage: both routines only touch register A. X is left
+; completely untouched, so callers don't need to worry about these
+; calls trashing whatever they were keeping in X. (Contrast this with
+; the floating-point routines, which use both A and X extensively and
+; so save/restore X themselves on entry/exit.)
+;
 ; v2 CONVENTION CHANGE (per Brian, 9/30): the result now overwrites the
 ; FIRST-PUSHED operand's slot (not the last-pushed one), so that a plain
 ; ADDSP 4,i right after CALL discards the correct leftover and chains
