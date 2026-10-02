@@ -1,0 +1,258 @@
+<html><head>
+    <style>
+        table {
+			border: 1px solid black;
+			border-top: 1px solid black;
+			border-bottom: none;
+			border-left: 1px solid black;
+			border-right: none;
+			border-spacing: 0px;
+        }
+		tr {
+			border: 1px solid black;
+			border-top: none;
+			border-bottom: 1px solid black;
+			border-left: none;
+			border-right: none;
+		}
+        th, td {
+            border: 1px solid black;
+            border-top: none;
+            border-bottom: none;
+            border-left: none;
+            border-right: 1px solid black;
+			vertical-align: top;
+        }
+    </style>
+</head><body>
+	<h1>DeP10 Standard Macros Reference</h1>
+	<p>Matches the style of the Pep/10 Reference. Covers <code>stdmacro.pep</code>,
+	the syscall-backed macros defined in <code>pep10os.peph</code>, and the
+	<code>dstack.pep</code> stack macros.</p>
+
+	<h2>stdmacro.pep</h2>
+	<p>Pulled in with <code>.INCLUDELIB "stdmacro"</code>.</p>
+	<table>
+		<tbody>
+			<tr>
+				<th>Macro</th>
+				<th>Args</th>
+				<th>Effect</th>
+			</tr>
+			<tr>
+				<td>ASLA2 / ASLA3 / ASLA4 / ASLA5</td>
+				<td>0</td>
+				<td>Shift A left by 2, 3, 4, or 5 bits (repeated ASLA).</td>
+			</tr>
+			<tr>
+				<td>ASLX2 / ASLX3 / ASLX4 / ASLX5</td>
+				<td>0</td>
+				<td>Shift X left by 2, 3, 4, or 5 bits.</td>
+			</tr>
+			<tr>
+				<td>ASRA2 / ASRA3 / ASRA4 / ASRA5</td>
+				<td>0</td>
+				<td>Shift A right by 2, 3, 4, or 5 bits (arithmetic).</td>
+			</tr>
+			<tr>
+				<td>ASRX2 / ASRX3 / ASRX4 / ASRX5</td>
+				<td>0</td>
+				<td>Shift X right by 2, 3, 4, or 5 bits (arithmetic).</td>
+			</tr>
+			<tr>
+				<td>ROLA2 / ROLA3 / ROLA4 / ROLA5</td>
+				<td>0</td>
+				<td>Rotate A left by 2, 3, 4, or 5 bits.</td>
+			</tr>
+			<tr>
+				<td>ROLX2 / ROLX3 / ROLX4 / ROLX5</td>
+				<td>0</td>
+				<td>Rotate X left by 2, 3, 4, or 5 bits.</td>
+			</tr>
+			<tr>
+				<td>RORA2 / RORA3 / RORA4 / RORA5</td>
+				<td>0</td>
+				<td>Rotate A right by 2, 3, 4, or 5 bits.</td>
+			</tr>
+			<tr>
+				<td>RORX2 / RORX3 / RORX4 / RORX5</td>
+				<td>0</td>
+				<td>Rotate X right by 2, 3, 4, or 5 bits.</td>
+			</tr>
+			<tr>
+				<td>CHARI</td>
+				<td>2 (operand, mode)</td>
+				<td>Reads one byte from the memory-mapped <code>charIn</code>
+				port, stores it to the given operand. Direct memory-mapped
+				I/O (baremetal), not a syscall.</td>
+			</tr>
+			<tr>
+				<td>CHARO</td>
+				<td>2 (operand, mode)</td>
+				<td>Loads a byte from the given operand, writes it to the
+				memory-mapped <code>charOut</code> port. Direct memory-mapped
+				I/O (baremetal), not a syscall.</td>
+			</tr>
+			<tr>
+				<td>LIBC</td>
+				<td>0</td>
+				<td>Expands to a <code>printf</code> implementation
+				supporting <code>%c</code>, <code>%h</code> (hex, via
+				<code>@HEXO</code>), <code>%d</code> (decimal, via
+				<code>@DECO</code>), and <code>%s</code> (string, via
+				<code>@STRO</code>) placeholders, plus <code>%%</code> and
+				<code>\</code> escapes.</td>
+			</tr>
+			<tr>
+				<td>MALLOC</td>
+				<td>0</td>
+				<td>Expands to a simple bump-pointer allocator. Precondition:
+				A holds the number of bytes requested; must be the last
+				statement in the program (defines the heap after it).
+				Postcondition: X holds the pointer to the allocated bytes.
+				This never frees; a version that does may be worth
+				revisiting eventually.</td>
+			</tr>
+			<tr>
+				<td>SWAPAX</td>
+				<td>0</td>
+				<td>Swaps the values of A and X.</td>
+			</tr>
+			<tr>
+				<td>XCHGA</td>
+				<td>2 (operand, mode)</td>
+				<td>Atomically (within one macro expansion) exchanges A with
+				the value at the given operand.</td>
+			</tr>
+			<tr>
+				<td>XCHGX</td>
+				<td>2 (operand, mode)</td>
+				<td>Exchanges X with the value at the given operand, using A
+				as a temporary; A and X are both restored to their
+				post-exchange values (not clobbered) except for the intended
+				swap.</td>
+			</tr>
+			<tr>
+				<td>XNORA</td>
+				<td>2 (operand, mode)</td>
+				<td>A &lt;- NOT(A XOR operand).</td>
+			</tr>
+			<tr>
+				<td>XNORX</td>
+				<td>2 (operand, mode)</td>
+				<td>X &lt;- NOT(X XOR operand).</td>
+			</tr>
+			<tr>
+				<td>PUSH</td>
+				<td>2 (operand, mode)</td>
+				<td>Pushes the value at the given operand onto the stack.</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<h2>Syscall-backed macros (pep10os.peph)</h2>
+	<p>These are <strong>not</strong> in <code>stdmacro.pep</code>, but each
+	one is still generated as a macro the moment the underlying syscall is
+	declared (<code>LDWA &lt;NAME&gt;,i</code> followed by <code>SCALL
+	$1,$2</code>), so they're called with <code>@NAME</code> the same way as
+	any other macro. Available when <code>.INCLUDELIB</code>-ing the OS
+	image rather than running baremetal.</p>
+	<table>
+		<tbody>
+			<tr>
+				<th>Macro</th>
+				<th>Args</th>
+				<th>Effect</th>
+			</tr>
+			<tr>
+				<td>DECI</td>
+				<td>2 (operand, mode)</td>
+				<td>Reads a decimal integer from input, stores it at the
+				given operand.</td>
+			</tr>
+			<tr>
+				<td>DECO</td>
+				<td>2 (operand, mode)</td>
+				<td>Writes the value at the given operand to output in
+				decimal. 16-bit only; there is no 32-bit equivalent yet
+				(see Open item, below).</td>
+			</tr>
+			<tr>
+				<td>HEXO</td>
+				<td>2 (operand, mode)</td>
+				<td>Writes the value at the given operand to output in
+				hexadecimal.</td>
+			</tr>
+			<tr>
+				<td>STRO</td>
+				<td>2 (operand, mode)</td>
+				<td>Writes a null-terminated string, given a pointer, to
+				output.</td>
+			</tr>
+			<tr>
+				<td>SNOP</td>
+				<td>2 (operand, mode)</td>
+				<td>No-op syscall (useful for testing the trap mechanism
+				itself).</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<h2>dstack.pep</h2>
+	<p>Caller-side stack manipulation macros. Pulled in with
+	<code>.INCLUDELIB "dstack"</code> <strong>before</strong> first use,
+	since (unlike the callable arithmetic routines) macro definitions must
+	be seen by the preprocessor before the <code>@NAME</code> invocation
+	that expands them.</p>
+	<table>
+		<tbody>
+			<tr>
+				<th>Macro</th>
+				<th>Args</th>
+				<th>Effect</th>
+			</tr>
+			<tr>
+				<td>DUP</td>
+				<td>0</td>
+				<td>Duplicates the top 16-bit word on the stack.</td>
+			</tr>
+			<tr>
+				<td>DROP</td>
+				<td>0</td>
+				<td>Discards the top 16-bit word on the stack.</td>
+			</tr>
+			<tr>
+				<td>SWAP</td>
+				<td>0</td>
+				<td>Swaps the top two 16-bit words on the stack.</td>
+			</tr>
+			<tr>
+				<td>DDUP</td>
+				<td>0</td>
+				<td>Duplicates the top 32-bit (high/low word pair) value on
+				the stack.</td>
+			</tr>
+			<tr>
+				<td>DDROP</td>
+				<td>0</td>
+				<td>Discards the top 32-bit value on the stack.</td>
+			</tr>
+			<tr>
+				<td>DSWAP</td>
+				<td>0</td>
+				<td>Swaps the top two 32-bit values on the stack.</td>
+			</tr>
+		</tbody>
+	</table>
+	<p>These only know about word/double-word boundaries on the stack, not
+	the semantic contents of what's there, matching the high-word-low-offset
+	convention used throughout DADD/DSUB/DDiv/UDDiv. None of them preserve
+	NZVC in any meaningful way.</p>
+
+	<h2>Open item</h2>
+	<p>No 32-bit equivalent of <code>@DECO</code> exists yet. A draft
+	<code>UDPRINTD</code>/<code>DPRINTD</code> pair has been written and
+	verified against 7 cases including 0, a value spanning both words, max
+	unsigned 32-bit, a negative value, and INT32_MIN; not yet reviewed with
+	Prof. Howard or merged. This page will be updated once that lands.</p>
+</body></html>
