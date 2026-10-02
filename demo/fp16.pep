@@ -1,4 +1,18 @@
-main:  LDWA 0x4400,i ; 1.0 * 2^2 = 4
+main:  LDWA 0x4500,i ; 1.01 * 2^2 = 5
+       STWA -2,s
+       LDWA 0x4200,i ; 1.1 * 2^1 = 3
+       STWA -4,s
+       SUBSP 4,i
+       CALL _fdiv
+       ADDSP 4,i
+       SUBSP 2,i
+       CALL _fprint
+       ADDSP 2,i
+       @CHARO '\n',i
+       @HEXO -2,s ; should print 3EAA = 1.1010101010 * 2^0 = 1.666...
+       @CHARO '\n',i
+
+       LDWA 0x4400,i ; 1.0 * 2^2 = 4
        STWA -2,s
        LDWA 0xC200,i ; -1.1 * 2^1 = -3
        STWA -4,s
@@ -89,7 +103,7 @@ main:  LDWA 0x4400,i ; 1.0 * 2^2 = 4
        ADDSP 2,i
        @CHARO '\n',i
 
-       LDWA 0x0001,i ; 0.0000000001*2^-14 = smallest possible (0.000000059604644775390625)
+       LDWA 0x0001,i ; 0.0000000001*2^-14 = 1*2^-24 = smallest possible (0.000000059604644775390625)
        STWA -2,s
        SUBSP 2,i
        CALL _fprint
@@ -474,7 +488,8 @@ _fm11: CPWA 0x2000,i ; shift until high bit in 2^13 place
        ASLA
        SUBX 0x0200,i
        BR   _fm11
-_fm12: MULHA -4,s ; product of mantissas in A, between 2^10 and 2^12
+_fm12: SMULA -4,s
+       SWAPHA ; product of mantissas in A, between 2^10 and 2^12
        ADDX -6,s ; sum of exponents in X, times 0x0200 (range -26 to 54, offset 24)
        SUBX 0x1200,i ; now exponent is range -35 to 45, offset 15
        CPWA 0x0800,i
@@ -495,6 +510,125 @@ _fm1:  LDWX 2,s
        BRGE _fm8
        ORA  0x8000,i
 _fm8:  STWA 4,s
+       LDWX -2,s
+       RET
+
+; _fdiv: Floating-point divide
+; Before call
+;   SP+0: N (divisor)
+;   SP+2: M (dividend)
+; During call
+;   SP-6: N exponent
+;   SP-4: N mantissa
+;   SP-2: save X
+;   SP+0: return address
+;   SP+2: N
+;   SP+4: M
+; After call
+;   SP+2: M/N (quotient)
+_fdiv: STWX -2,s
+       ; M NaN => return NaN
+       LDWA 4,s
+       ANDA 0x7FFF,i
+       BREQ _fd2 ; M is zero
+       CPWA 0x7C00,i
+       BRGT _fd1 ; result in A (NaN)
+       BRLT _fd5 ; M is finite non-zero
+       ; M infinity =>
+       ;   N NaN or N infinity => return NaN
+       ;   else return infinity
+       LDWX 2,s
+       ANDX 0x7FFF,i
+       CPWX 0x7C00,i
+       BRLE _fd4 ;
+_fd3:  LDWA 0x7FFF,i
+_fd4:  BR   _fd1 ; result in A (NaN or infinity)
+       ; M zero =>
+       ;   N NaN or N zero => return NaN
+       ;   else return zero
+_fd2:  LDWX 2,s
+       ANDX 0x7FFF,i
+       BREQ _fd3 ; zero / zero
+       CPWX 0x7C00,i
+       BRGT _fd3 ; zero / NaN
+       BR   _fd1 ; result in A (zero)
+       ; N NaN => return NaN
+       ; N infinity => return zero
+       ; N zero => return infinity
+_fd5:  LDWX 2,s
+       ANDX 0x7FFF,i
+       BREQ _fd6 ; finite / zero
+       CPWX 0x7C00,i
+       BRGT _fd3 ; finite / NaN
+       BRLT _fd7 ; finite / finite
+_fd14: LDWA 0x0000,i
+       BR   _fd1 ; result in A (zero)
+_fd6:  LDWA 0x7C00,i
+       BR   _fd1 ; result in A (infinity)
+_fd7:  ; divide two finite numbers
+       LDWA 2,s
+       ANDA 0x03FF,i ; N mantissa in A
+       LDWX 2,s
+       ANDX 0x7C00,i ; N exponent*0400 in X
+       ASRX          ; N exponent*0200 in X
+       BREQ _fd11 ; check for subnormal N
+       ORA  0x0400,i ; add hidden bit if normal
+_fd11: CPWA 0x0800,i
+       BRGE _fd12 ; shift until high bit in 2^11 place
+       SUBX 0x0200,i
+       ASLA
+       BR   _fd11
+_fd12: STWA -4,s ; N mantissa in low 12 bits
+       STWX -6,s ; N exponent: -11 to 29 (times 0x0200), offset 14
+       LDWA 4,s
+       ANDA 0x03FF,i ; M mantissa in A
+       LDWX 4,s
+       ANDX 0x7C00,i ; M exponent*0400 in X
+       ASRX          ; M exponent*0200 in X
+       BREQ _fd9 ; check for subnormal M
+       ORA  0x0400,i ; add hidden bit if normal
+_fd9:  CPWA 0x0400,i
+       BRGE _fd10 ; shift until high bit in 2^10 place
+       SUBX 0x0200,i
+       ASLA
+       BR   _fd9
+_fd10: ; M exponent in X: -10 to 30 (times 0x0200), offset 15
+       ; M mantissa in A (low 11 bits)
+       ; Want to divide unsigned 32-bit dividend = M in high word, low 11 bits
+       ; by 16-bit divisor = N in low 12 bits
+       ; Largest possible quotient will then just fit in (high end of) 16 bits
+       SWAPHA
+       LDWA 0,i
+       UDMA -4,s ; A is 1.qqq... or 0.1qq...
+       SUBX -6,s ; difference of exponents in X, times 0x0200 (range -39 to 41, offset 1)
+       CPWA 0,i
+       BRGE _fd16
+       ASRA
+       ANDA 0x7FFF,i ; if high bit was 1, need special treatment for first ASRA
+       ADDX 0x0200,i
+_fd16: ASRA
+       ASRA
+       ASRA
+       ASRA ; now bit 11 is 1 and higher bits are 0
+       ADDX 0x1A00,i ; restore bias 15 to exponent; max is 55 times 0x0200
+       BRGT _fd15 ; number is normal or infinite
+       BRLT _fd13 ; exponent is negative
+       ASRA
+       BR _fd15 ; exponent is 0
+_fd13: ASRA ; need to increase exponent to 0 for subnormal/zero case
+       ADDX 0x0200,i
+       BRLT _fd13
+_fd15: CPWX 0x3E00,i
+       BRGE _fd6 ; infinite result
+       ANDA 0x03FF,i ; remove hidden bit, if still present
+       ASLX
+       STWX -6,s
+       ADDA -6,s
+_fd1:  LDWX 2,s
+       XORX 4,s
+       BRGE _fd8
+       ORA  0x8000,i
+_fd8:  STWA 4,s
        LDWX -2,s
        RET
 
@@ -553,15 +687,19 @@ _fp6:  MOVSPA ; prepare to print the integer part
        STWA -15,s
        LDWA -7,s
        BREQ _fp8
-_fp7:  UMODA 10,i
+_fp7:  SWAPHA
+       LDWA 0,i ; clear upper 16 bits of dividend (need CLRH? SEHr to sign-extend r into H?)
+       SWAPHA
+       UDMA 10,i
+       SWAPHA
        ORA  '0',i
        LDWX -15,s
        SUBX 1,i
        STWX -15,s
        STBA -15,sf
-       LDWA -7,s
-       UDIVA 10,i
+       SWAPHA
        STWA -7,s
+       CPWA 0,i
        BRNE _fp7
        @STRO -15,sf
        BR   _fp9
@@ -571,14 +709,13 @@ _fp9:  LDWA -4,s ; prepare to print the decimal part
        BREQ _fp0
        @CHARO '.',i
 _fp10: LDWA -4,s
-       LDWX -4,s
-       MULA 10,i
+       UMULA 10,i
        STWA -4,s
-       UMULHX 10,i
+       SWAPHX    ; save high word in X
        LDWA -6,s
-       MULA 10,i
+       UMULA 10,i
        STWA -6,s
-       ADDX -6,s
+       ADDX -6,s ; add saved high word from multiplying -4,s by 10
        STWX -6,s
        LDBA -6,s
        ORA  '0',i
@@ -691,4 +828,4 @@ _it1:  STWA 2,s
        LDWX -2,s
        RET
        
-; TODO: Read float from console, Floating-point division
+; TODO: Read float from console
