@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>edu.depauw.dep10</groupId>
 	<artifactId>dep10</artifactId>
-	<version>0.9.2</version>
+	<version>0.9.3</version>
 	<properties>
 		<main.class>edu.depauw.dep10.driver.Driver</main.class>
 	</properties>

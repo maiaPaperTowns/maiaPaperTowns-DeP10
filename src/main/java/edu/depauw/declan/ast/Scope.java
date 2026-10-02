@@ -26,7 +26,7 @@ public abstract class Scope {
 
     public void add(String name, VarInfo info) {
         info.setSlot(slotNumber);
-        slotNumber++;
+        slotNumber += info.width();
         variables.put(name, info);
     }
 
