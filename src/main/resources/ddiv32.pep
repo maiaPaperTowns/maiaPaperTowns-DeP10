@@ -2,6 +2,11 @@
 ; DDiv / UDDiv -- 32-bit / 32-bit division, matching the stack calling
 ; convention Prof. Howard gave Jess for DMul (see "DMUL - checking if
 ; on the right track" thread, 9/14/2026).
+;
+; Register usage: only register A is used throughout, including in all
+; of the internal helper routines below (_UCmp16, _UDiv32, etc). X is
+; left completely untouched, so callers don't need to worry about
+; these calls trashing whatever they were keeping in X.
 ;=======================================================================
 
 _UCmp16:
@@ -297,40 +302,54 @@ sdivNegR:    .BLOCK 2
 ;
 ; DDiv:  signed.   UDDiv: unsigned.
 ;
+; v2 CONVENTION CHANGE (matching the DADD/DSUB fix): the quotient now
+; overwrites the FIRST-pushed operand's slot (the dividend), and the
+; remainder overwrites the LAST-pushed operand's slot (the divisor), so
+; that a plain ADDSP 4,i right after CALL discards the remainder and
+; chains cleanly for a sequence of divisions:
+;   PUSH dividend
+;   PUSH divisor
+;   CALL UDDiv     ; computes dividend / divisor, quotient replaces dividend's slot
+;   ADDSP 4,i       ; discards divisor's now-unused slot (remainder, if unneeded)
+;   PUSH nextDivisor
+;   CALL UDDiv     ; computes (first quotient) / nextDivisor
+;   ADDSP 4,i
+;   POPA / POPA    ; final quotient
+;
+; Push order is dividend first, then divisor, matching the same
+; left-to-right operand order used by DADD/DSUB/DMUL (PUSH A; PUSH B).
+;
 ; Stack layout at entry (SP,0 is the return address, since the caller
 ; just did CALL DDiv,i / CALL UDDiv,i):
-;   SP,2  dividend high word      SP,6  divisor high word
-;   SP,4  dividend low word       SP,8  divisor low word
+;   SP,6  dividend high word (first-pushed)   SP,2  divisor high word (last-pushed)
+;   SP,8  dividend low word                   SP,4  divisor low word
 ;
 ; On return, in place:
-;   SP,2  quotient high word      SP,6  remainder high word
-;   SP,4  quotient low word       SP,8  remainder low word
+;   SP,6  quotient high word                  SP,2  remainder high word
+;   SP,8  quotient low word                   SP,4  remainder low word
 ;
 ; Caller looks like:
-;   LDWA  divisorLow,i / PUSHA
-;   LDWA  divisorHigh,i / PUSHA
 ;   LDWA  dividendLow,i / PUSHA
 ;   LDWA  dividendHigh,i / PUSHA
+;   LDWA  divisorLow,i / PUSHA
+;   LDWA  divisorHigh,i / PUSHA
 ;   CALL  DDiv,i          ; or UDDiv,i
+;   ADDSP 4,i               ; discard divisor's now-unused slot, if remainder not needed
 ;   POPA
 ;   STWA  quotientHigh,i
 ;   POPA
 ;   STWA  quotientLow,i
-;   POPA
-;   STWA  remainderHigh,i
-;   POPA
-;   STWA  remainderLow,i
 ;   BRC   ... handle divide-by-zero, if needed ...
 ;=======================================================================
 
 UDDiv:
-        LDWA    2,s
-        STWA    udivDvdHi,d
-        LDWA    4,s
-        STWA    udivDvdLo,d
         LDWA    6,s
-        STWA    udivDvrHi,d
+        STWA    udivDvdHi,d
         LDWA    8,s
+        STWA    udivDvdLo,d
+        LDWA    2,s
+        STWA    udivDvrHi,d
+        LDWA    4,s
         STWA    udivDvrLo,d
 
         LDWA    udivDvrHi,d
@@ -368,13 +387,13 @@ _UDDivGeneral:
         BR      _DDivWriteBack
 
 _DDivSigned:
-        LDWA    2,s
-        STWA    udivDvdHi,d
-        LDWA    4,s
-        STWA    udivDvdLo,d
         LDWA    6,s
-        STWA    udivDvrHi,d
+        STWA    udivDvdHi,d
         LDWA    8,s
+        STWA    udivDvdLo,d
+        LDWA    2,s
+        STWA    udivDvrHi,d
+        LDWA    4,s
         STWA    udivDvrLo,d
 
         LDWA    udivDvrHi,d
@@ -385,13 +404,13 @@ _DDivSigned:
 
 _DDivWriteBack:
         LDWA    udivQuoHi,d
-        STWA    2,s
-        LDWA    udivQuoLo,d
-        STWA    4,s
-        LDWA    udivRemHi,d
         STWA    6,s
-        LDWA    udivRemLo,d
+        LDWA    udivQuoLo,d
         STWA    8,s
+        LDWA    udivRemHi,d
+        STWA    2,s
+        LDWA    udivRemLo,d
+        STWA    4,s
 
         ; N = sign of quotient, Z = quotient is 0, V = 0, C = 0 (success)
         LDWA    0,i
