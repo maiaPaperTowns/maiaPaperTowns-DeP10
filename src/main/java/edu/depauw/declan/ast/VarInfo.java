@@ -17,6 +17,17 @@ public class VarInfo {
         return false;
     }
 
+    /**
+     * Number of consecutive slots this variable occupies (see Type#width).
+     * Some VarInfo instances are sentinels with no real type (e.g. the
+     * "_return_address" slot TypeChecker reserves in each procedure's
+     * frame, see TypeChecker#visitProcedure) and always occupy exactly 1
+     * slot.
+     */
+    public int width() {
+        return type == null ? 1 : type.width();
+    }
+
     @Override
     public String toString() {
         return type.toString() + " #" + slot;
