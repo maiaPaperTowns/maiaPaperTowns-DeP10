@@ -188,6 +188,7 @@ public class MainFrame extends JFrame {
         var helpMenu = new JMenu("Help");
         helpMenu.add(new JMenuItem(viewHelp("Pep/10 Reference", "pep10ref.html")));
         helpMenu.add(new JMenuItem(viewHelp("DeCLan Grammar", "declan.html")));
+        helpMenu.add(new JMenuItem(viewHelp("DeP10 Macro Reference", "dep10macroref.html")));
         helpMenu.addSeparator();
         helpMenu.add(new JMenuItem(viewResource("View Pep/10 Full OS Listing", "pep10os.pepl")));
         helpMenu.add(new JMenuItem(viewResource("View Pep/10 Bare Metal OS Listing", "pep10baremetal.pepl")));
