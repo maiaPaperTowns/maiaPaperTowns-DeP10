@@ -33,6 +33,9 @@ public class CommandRun {
 	@Parameter(names = {"-t", "--trace"}, description = "Tracing output.", order = 7)
 	public String trace = null;
 	
+	@Parameter(names = "--fancy", description = "Fancy machine: supervisor/user modes, timer at 0xFFF5, invalid-instruction trap.", order = 9)
+	public boolean fancy = false;
+
 	@Parameter(names = {"-m", "--max"}, description = "Maximum number of instructions (0 for unlimited).", order = 8)
 	public int max = 125000;
 }

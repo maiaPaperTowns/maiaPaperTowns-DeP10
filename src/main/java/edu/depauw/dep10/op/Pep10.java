@@ -7,6 +7,8 @@ public class Pep10 {
     public static final Word TRAP_HANDLER_POINTER = Word.of(0xFFF7);
     public static final Word DISPATCHER_POINTER = Word.of(0xFFF9);
     public static final Word SYSTEM_STACK_POINTER = Word.of(0xFFFB);
+    /** Timer device (fancy machine): instructions left to run in user mode before a timer trap; 0 = off. */
+    public static final Word TIMER = Word.of(0xFFF5);
     public static final Word CHARIN = Word.of(0xFFFD);
     public static final Word CHAROUT = Word.of(0xFFFE);
     public static final Word SHUTDOWN = Word.of(0xFFFF);
@@ -29,6 +31,7 @@ public class Pep10 {
             s.setPC(s.mem2(t.plus(5)));
             s.setSP(s.mem2(t.plus(7)));
             s.setMem2(SYSTEM_STACK_POINTER, t.plus(12));
+            s.leaveProtectedMode();
         }
     };
 
@@ -337,18 +340,7 @@ public class Pep10 {
 
     public static final OpCore SCALL = new OpCore("SCALL", Modes.All) {
         public void exec(State s, Mode mode) {
-            var t = s.mem2(SYSTEM_STACK_POINTER);
-
-            s.setMem2(t.plus(-2), s.getOperand()); // don't resolve yet; the handler will do that
-            s.setMem1(t.plus(-3), s.getOpCode());
-            s.setMem2(t.plus(-5), s.getSP());
-            s.setMem2(t.plus(-7), s.getPC());
-            s.setMem2(t.plus(-9), s.getX());
-            s.setMem2(t.plus(-11), s.getA());
-            s.setMem1(t.plus(-12), s.getFlags());
-
-            s.setSP(t.plus(-12));
-            s.setPC(s.mem2(TRAP_HANDLER_POINTER));
+            s.trap(s.getOpCode(), s.getOperand()); // don't resolve the operand yet; the handler will do that
         }
     };
 

@@ -218,6 +218,7 @@ public class Driver {
         state.setInput(run.consoleIn);
         state.setOutput(run.consoleOut);
         state.setError(run.errOut);
+        state.setFancy(run.fancy);
 
         Simulator sim = new Simulator(state);
 
