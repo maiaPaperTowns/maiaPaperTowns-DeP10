@@ -63,6 +63,7 @@ public interface SourceType {
         var sp = frame.statePanel;
 
         State state = new State();
+        state.setFancy(frame.isFancy());
         state.loadString(object.getContent());
         loadOSObject(state);
 
@@ -102,6 +103,7 @@ public interface SourceType {
         var sp = frame.statePanel;
 
         State state = new DebugState();
+        state.setFancy(frame.isFancy());
         state.loadString(object.getContent());
         loadOSObject(state);
 
